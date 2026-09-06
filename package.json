@@ -1,0 +1,43 @@
+{
+  "name": "toolshop-e2e",
+  "version": "1.0.0",
+  "description": "Playwright Page Object Model framework for the Practice Software Testing (Toolshop) application",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:ui": "playwright test tests/ui",
+    "test:api": "playwright test tests/api",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:watch": "playwright test --ui",
+    "test:chromium": "playwright test --project=chromium",
+    "report": "playwright show-report",
+    "trace": "playwright show-trace",
+    "codegen": "playwright codegen https://practicesoftwaretesting.com",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "verify": "npm run typecheck && npm run lint && npm run format:check",
+    "test:bugs": "cross-env TEST_ENV=with-bugs playwright test"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "@faker-js/faker": "^10.6.0",
+    "@playwright/test": "1.62.1",
+    "@types/node": "^22.10.0",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.4.7",
+    "eslint": "^9.15.0",
+    "eslint-plugin-playwright": "^2.1.0",
+    "prettier": "^3.4.1",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.16.0"
+  }
+}

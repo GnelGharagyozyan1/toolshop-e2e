@@ -1,0 +1,49 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 6 * * *' # nightly regression run
+
+jobs:
+  test:
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Sharding splits the suite across parallel machines.
+        # 4 shards on a 20-minute suite gets you results in ~5.
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run tests
+        run: npx playwright test --shard=${{ matrix.shard }}/4
+        env:
+          CI: true
+          TEST_ENV: v5
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          CUSTOMER_EMAIL: ${{ secrets.CUSTOMER_EMAIL }}
+          CUSTOMER_PASSWORD: ${{ secrets.CUSTOMER_PASSWORD }}
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-shard-${{ matrix.shard }}
+          path: playwright-report/
+          retention-days: 7
