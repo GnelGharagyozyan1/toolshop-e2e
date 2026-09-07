@@ -13,6 +13,9 @@ import { env } from '@config/env';
  * If the sign-in form is redesigned tomorrow, this file does not change.
  */
 test.describe('authentication', () => {
+  // These tests exercise the login flow itself, so they must start logged OUT.
+  // This overrides the project-level storageState with an empty session.
+  test.use({ storageState: { cookies: [], origins: [] } });
   test('a customer can sign in with valid credentials @smoke', async ({ page }) => {
     const loginPage = new LoginPage(page);
 

@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 import { env } from './src/config/env';
+import { STORAGE_STATE } from './src/config/paths';
 
 /**
  * Playwright configuration.
@@ -98,25 +99,74 @@ export default defineConfig({
    *   (a) cross-browser coverage
    *   (b) setup/teardown phases that other projects depend on
    * ------------------------------------------------------------------- */
-  projects: [
-    // Phase 2 will add an auth setup project here that logs in once
-    // and saves the session to disk, so no UI test ever logs in again.
+    projects: [
+    /**
+     * The setup project. `testMatch` means it picks up ONLY *.setup.ts files,
+     * so it never runs your specs. It has no storageState of its own, which
+     * is exactly right — it starts logged out and creates the session.
+     */
+    {
+      name: 'setup',
+      testMatch: /.*\.setup\.ts/,
+    },
 
+    /**
+     * `dependencies: ['setup']` makes Playwright run setup to completion
+     * before this project starts. If setup fails, these are skipped rather
+     * than run against a stale or missing session file — which turns one
+     * clear failure into one clear failure, instead of 300 confusing ones.
+     *
+     * `storageState` loads the saved session into every new browser context,
+     * so each test opens already authenticated.
+     */
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: STORAGE_STATE.customer,
+      },
+      dependencies: ['setup'],
     },
     {
       name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
+      use: {
+        ...devices['Desktop Firefox'],
+        storageState: STORAGE_STATE.customer,
+      },
+      dependencies: ['setup'],
     },
     {
       name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
+      use: {
+        ...devices['Desktop Safari'],
+        storageState: STORAGE_STATE.customer,
+      },
+      dependencies: ['setup'],
     },
     {
       name: 'mobile-chrome',
-      use: { ...devices['Pixel 7'] },
+      use: {
+        ...devices['Pixel 7'],
+        storageState: STORAGE_STATE.customer,
+      },
+      dependencies: ['setup'],
+    },
+
+    /**
+     * A separate project for admin-only tests. Same browser, different
+     * session file, and it only picks up specs under tests/admin/.
+     * This is how you run one suite as two different users.
+     */
+    {
+      name: 'admin',
+      testMatch: /.*\/admin\/.*\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: STORAGE_STATE.admin,
+      },
+      dependencies: ['setup'],
     },
   ],
-});
+  });
+  
+  
