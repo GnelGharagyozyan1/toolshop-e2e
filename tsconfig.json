@@ -28,7 +28,7 @@
 
     /* Path aliases: import from '@pages/login.page' instead of '../../../src/pages/login.page'.
        Playwright reads these from tsconfig automatically. */
-        "baseUrl": ".",
+    "baseUrl": ".",
     "ignoreDeprecations": "6.0",
     "paths": {
       "@pages/*": ["src/pages/*"],
