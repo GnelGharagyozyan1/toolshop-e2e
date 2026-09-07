@@ -60,4 +60,22 @@ export default tseslint.config(
       'playwright/no-skipped-test': 'warn',
     },
   },
+
+  // The ESLint config file itself isn't part of the TypeScript project, so
+  // type-aware rules can't analyse it. Exempt it rather than contorting
+  // tsconfig to include a file that only ESLint ever reads.
+  {
+    files: ['eslint.config.mjs'],
+    ...tseslint.configs.disableTypeChecked,
+  },
+
+  // Playwright's fixture signature REQUIRES an empty destructure:
+  // `async ({}, use) => {}` is how you declare a fixture with no dependencies.
+  // The generic no-empty-pattern rule doesn't know that and flags it.
+  {
+    files: ['src/fixtures/**/*.ts'],
+    rules: {
+      'no-empty-pattern': 'off',
+    },
+  },
 );

@@ -1,6 +1,7 @@
 import { test, expect } from '@fixtures/test';
 import { buildUser } from '@data/user.factory';
 import { env } from '@config/env';
+import type { RegisteredUser } from '@api/types';
 
 /**
  * API-level tests.
@@ -18,7 +19,7 @@ test.describe('user registration API', () => {
 
     expect(response.status()).toBe(201);
 
-    const body = await response.json();
+    const body = (await response.json()) as RegisteredUser;
     expect(body).toMatchObject({
       first_name: payload.first_name,
       last_name: payload.last_name,

@@ -22,7 +22,7 @@ export class FilterComponent {
   readonly sortDropdown: Locator;
   readonly ecoFriendlyToggle: Locator;
 
-  constructor(private readonly page: Page) {
+  constructor(page: Page) {
     this.root = page.getByTestId('filters');
     this.sortDropdown = page.getByTestId('sort');
     this.ecoFriendlyToggle = page.getByTestId('eco-friendly-filter');

@@ -65,4 +65,20 @@ export class AuthApi {
     const token = await this.login(payload.email, payload.password);
     return { user, token };
   }
+  /**
+   * Delete a user. Requires an ADMIN bearer token — a user cannot delete
+   * themselves through this endpoint.
+   *
+   * Returns `true` on success, `false` on failure. Deliberately does NOT throw:
+   * this is called from teardown, and a throwing teardown turns a passing test
+   * red for a reason unrelated to what it tested. See the `newUser` fixture for
+   * the full reasoning.
+   */
+  async deleteUser(userId: string, adminToken: string): Promise<boolean> {
+    const response = await this.request.delete(`${env.apiURL}/users/${userId}`, {
+      headers: { Authorization: `Bearer ${adminToken}` },
+    });
+
+    return response.ok();
+  }
 }

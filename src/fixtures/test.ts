@@ -7,76 +7,111 @@ import { env } from '@config/env';
 /**
  * Custom fixtures — dependency injection for tests.
  *
- * WHAT A FIXTURE IS
+ * A fixture is a named thing a test asks for by destructuring it out of the
+ * test callback. Playwright builds it before the test and tears it down after.
+ * `page` and `request` are built-in fixtures; these are ours.
  *
- * A fixture is a named thing your test can ask for by destructuring it out of
- * the test callback. Playwright builds it before the test, hands it over, and
- * tears it down afterwards. You've been using them all along: `page` and
- * `request` are built-in fixtures.
- *
- * WHY THIS BEATS beforeEach
- *
- *   - LAZY. A fixture is only built if a test actually asks for it. A
- *     beforeEach runs for every test in the file whether it's needed or not.
- *   - EXPLICIT. `async ({ newUser }) => {}` states the test's dependencies in
- *     its signature. With beforeEach you have to scroll up to find out what
- *     magically exists.
- *   - TYPED. Autocomplete works, typos are compile errors.
- *   - COMPOSABLE. Fixtures can depend on other fixtures.
- *   - TEARDOWN IS COLOCATED. Setup and cleanup sit in one place instead of
- *     being split across beforeEach and afterEach.
+ * Why fixtures beat beforeEach: they're lazy (built only if requested),
+ * explicit (visible in the test signature), typed, composable, and setup and
+ * teardown live in one function instead of two hooks.
  */
 
+/** Fixtures rebuilt for every test. */
 type TestFixtures = {
   authApi: AuthApi;
   newUser: TestUser;
 };
 
-export const test = base.extend<TestFixtures>({
+/** Fixtures built ONCE per worker process and shared by its tests. */
+type WorkerFixtures = {
+  adminToken: string;
+};
+
+export const test = base.extend<TestFixtures, WorkerFixtures>({
+  /**
+   * An admin bearer token, WORKER-SCOPED.
+   *
+   * SCOPE IS THE INTERESTING PART HERE.
+   *
+   * Default fixture scope is 'test' — rebuilt for every single test. An admin
+   * token doesn't need that. It's the same token for the whole run, and
+   * fetching it per test would add a login round-trip to every test that
+   * creates a user.
+   *
+   * 'worker' scope means it's built once per worker process and reused by
+   * every test that worker runs. With 5 workers and 60 tests, that's 5 logins
+   * instead of 60.
+   *
+   * The tuple syntax `[fn, { scope: 'worker' }]` is how you declare it —
+   * easy to miss, and forgetting it silently gives you test scope.
+   *
+   * Rule of thumb: worker scope for anything expensive AND immutable. Never
+   * for anything a test might modify, or you've reintroduced shared state.
+   */
+  adminToken: [
+    async ({}, use) => {
+      const context = await playwrightRequest.newContext();
+      const api = new AuthApi(context);
+
+      const token = await api.login(env.users.admin.email, env.users.admin.password);
+
+      await use(token);
+
+      await context.dispose();
+    },
+    { scope: 'worker' },
+  ],
+
   /**
    * A ready-to-use auth API client.
    *
-   * It builds its own request context rather than borrowing the browser's,
-   * so it works even in tests that never open a page.
+   * Builds its own request context rather than borrowing the browser's, so it
+   * works in tests that never open a page.
    */
   authApi: async ({}, use) => {
-    const context = await playwrightRequest.newContext({ baseURL: env.apiURL });
+    const context = await playwrightRequest.newContext();
 
-    // Everything BEFORE `use()` is setup.
+    // Everything BEFORE use() is setup.
     await use(new AuthApi(context));
-    // Everything AFTER `use()` is teardown — it runs even if the test failed.
+    // Everything AFTER use() is teardown — it runs even if the test failed.
 
     await context.dispose();
   },
 
   /**
-   * A freshly registered user, unique to this test.
+   * A freshly registered user, unique to this test, deleted afterwards.
    *
-   * This is the fixture that solves the shared-state problem. Every test that
-   * asks for `newUser` gets its own account, so no two tests can interfere
-   * with each other no matter how many workers run in parallel.
+   * This fixture solves the shared-state problem: every test that asks for
+   * `newUser` gets its own account, so no two tests can collide no matter how
+   * many workers run in parallel. Creating it via API costs ~300ms; the same
+   * thing through the registration form costs 5-8 seconds and can fail for
+   * reasons unrelated to the test.
    *
-   * Cost: roughly 300ms via the API. Creating the same user through the
-   * registration form would take 5-8 seconds and could fail for reasons that
-   * have nothing to do with what you're testing.
+   * ON TEARDOWN FAILURES — the important design decision here.
    *
-   * ON CLEANUP: we deliberately leave these accounts behind. Deleting them
-   * would need admin credentials and an endpoint we haven't verified, and a
-   * teardown that fails is worse than no teardown — it turns a passing test
-   * red for a reason unrelated to the test. Because every email is unique,
-   * leftover accounts can't affect later runs. On a real project you'd either
-   * add a verified cleanup step here or reset the database between runs.
+   * `deleteUser` returns a boolean instead of throwing, and we only warn when
+   * it fails. That's deliberate. If teardown throws, Playwright marks the test
+   * as failed — so a cleanup problem would turn a genuinely passing test red,
+   * and you'd spend an hour debugging the wrong thing. Cleanup is the most
+   * common source of spurious failures in suites that have it.
+   *
+   * The cost of this choice is real: silent cleanup failures accumulate
+   * unnoticed. The console warning is the mitigation, and it's a weak one.
+   * On a project you control, the better answer is resetting the database
+   * between runs — this app ships `php artisan migrate:fresh --seed` for
+   * exactly that. Deletion is the right compromise against a shared instance.
    */
-  newUser: async ({ authApi }, use) => {
+  newUser: async ({ authApi, adminToken }, use) => {
     const payload = buildUser();
     const user = await authApi.register(payload);
 
     await use(user);
+
+    const deleted = await authApi.deleteUser(user.id, adminToken);
+    if (!deleted) {
+      console.warn(`Cleanup failed: could not delete user ${user.id} (${user.email})`);
+    }
   },
 });
 
-/**
- * Re-export `expect` so spec files have a single import.
- * From here on, tests import from '@fixtures/test', not '@playwright/test'.
- */
 export { expect } from '@playwright/test';

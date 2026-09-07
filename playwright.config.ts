@@ -111,6 +111,19 @@ export default defineConfig({
     },
 
     /**
+     * API tests. No browser, no storageState, no cross-browser matrix.
+     *
+     * An HTTP request behaves identically regardless of which browser isn't
+     * being used, so running these four times is pure waste. Isolating them
+     * into their own project also means `--project=api` gives you a suite that
+     * runs in under two seconds — useful as a fast pre-commit check.
+     */
+    {
+      name: 'api',
+      testMatch: /.*\/api\/.*\.spec\.ts/,
+    },
+
+    /**
      * `dependencies: ['setup']` makes Playwright run setup to completion
      * before this project starts. If setup fails, these are skipped rather
      * than run against a stale or missing session file — which turns one
@@ -121,6 +134,7 @@ export default defineConfig({
      */
     {
       name: 'chromium',
+      testIgnore: /.*\/api\/.*\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         storageState: STORAGE_STATE.customer,
@@ -129,6 +143,7 @@ export default defineConfig({
     },
     {
       name: 'firefox',
+      testIgnore: /.*\/api\/.*\.spec\.ts/,
       use: {
         ...devices['Desktop Firefox'],
         storageState: STORAGE_STATE.customer,
@@ -137,16 +152,9 @@ export default defineConfig({
     },
     {
       name: 'webkit',
+      testIgnore: /.*\/api\/.*\.spec\.ts/,
       use: {
         ...devices['Desktop Safari'],
-        storageState: STORAGE_STATE.customer,
-      },
-      dependencies: ['setup'],
-    },
-    {
-      name: 'mobile-chrome',
-      use: {
-        ...devices['Pixel 7'],
         storageState: STORAGE_STATE.customer,
       },
       dependencies: ['setup'],

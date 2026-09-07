@@ -12,14 +12,22 @@ test.describe('product catalogue', () => {
   test('search returns only matching products', async ({ page }) => {
     const products = new ProductsPage(page);
     await products.open();
+    await expect(products.cards).toHaveCount(9);
+
+    // Snapshot before acting, so we have something to wait against.
+    const before = await products.getProductNames();
 
     await products.search('hammer');
 
+    // Wait for the CONTENT to change. The previous version read immediately
+    // and got the pre-search catalogue back — which is why it failed on
+    // chromium and webkit but passed on firefox. Timing-dependent, i.e. flaky.
+    await expect.poll(() => products.getProductNames()).not.toEqual(before);
+
     const names = await products.getProductNames();
 
-    // Assert the list is non-empty BEFORE asserting a property of every item.
-    // `every()` on an empty array returns true — so without this line, a
-    // broken search that returned nothing would pass.
+    // every() returns true on an empty array, so the non-empty check is
+    // load-bearing, not decoration.
     expect(names.length).toBeGreaterThan(0);
     expect(names.every((n) => n.toLowerCase().includes('hammer'))).toBeTruthy();
   });
