@@ -31,7 +31,7 @@ export default defineConfig({
 
   // CI machines are usually small and shared; local machines are not.
   // `undefined` lets Playwright pick (roughly half your CPU cores).
-    ...(env.isCI ? { workers: 2 } : {}),
+  ...(env.isCI ? { workers: 2 } : {}),
 
   // Fail the whole run early if something is systemically broken,
   // instead of burning 30 minutes of CI to report 300 identical failures.
@@ -99,7 +99,7 @@ export default defineConfig({
    *   (a) cross-browser coverage
    *   (b) setup/teardown phases that other projects depend on
    * ------------------------------------------------------------------- */
-    projects: [
+  projects: [
     /**
      * The setup project. `testMatch` means it picks up ONLY *.setup.ts files,
      * so it never runs your specs. It has no storageState of its own, which
@@ -167,6 +167,4 @@ export default defineConfig({
       dependencies: ['setup'],
     },
   ],
-  });
-  
-  
+});
