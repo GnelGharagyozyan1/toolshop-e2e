@@ -123,15 +123,6 @@ export default defineConfig({
       testMatch: /.*\/api\/.*\.spec\.ts/,
     },
 
-    /**
-     * `dependencies: ['setup']` makes Playwright run setup to completion
-     * before this project starts. If setup fails, these are skipped rather
-     * than run against a stale or missing session file — which turns one
-     * clear failure into one clear failure, instead of 300 confusing ones.
-     *
-     * `storageState` loads the saved session into every new browser context,
-     * so each test opens already authenticated.
-     */
     {
       name: 'chromium',
       testIgnore: /.*\/api\/.*\.spec\.ts/,
@@ -160,11 +151,6 @@ export default defineConfig({
       dependencies: ['setup'],
     },
 
-    /**
-     * A separate project for admin-only tests. Same browser, different
-     * session file, and it only picks up specs under tests/admin/.
-     * This is how you run one suite as two different users.
-     */
     {
       name: 'admin',
       testMatch: /.*\/admin\/.*\.spec\.ts/,

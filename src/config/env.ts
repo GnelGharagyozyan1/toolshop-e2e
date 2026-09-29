@@ -1,32 +1,7 @@
 import { config as loadDotenv } from 'dotenv';
 
-/**
- * Single source of truth for environment configuration.
- *
- * Rule: `process.env` is read HERE and nowhere else in the codebase.
- * Everything downstream imports a typed, validated `env` object.
- *
- * Why this matters:
- *   - a typo in process.env.BASE_URL silently gives you `undefined`
- *   - scattered process.env reads make it impossible to see what a run needs
- *   - failing fast at startup beats a confusing timeout 40 tests later
- */
-
-// .env holds LOCAL overrides and secrets only. It is gitignored.
-// On CI, values come from the CI provider's secret store instead.
 loadDotenv({ quiet: true });
 
-/**
- * The application under test publishes several deployed versions.
- *
- *   v1..v4      snapshots of earlier development sprints
- *   v5          current release  (default)
- *   with-bugs   v5 with defects deliberately injected
- *   local       your own Docker Compose instance
- *
- * Being able to point the same suite at `with-bugs` and watch it go red is
- * the cheapest possible proof that your tests actually detect regressions.
- */
 export type TargetEnvironment = 'local' | 'v1' | 'v2' | 'v3' | 'v4' | 'v5' | 'with-bugs';
 
 const TARGETS: Record<TargetEnvironment, { web: string; api: string }> = {
@@ -65,7 +40,6 @@ function optional(name: string, fallback: string): string {
   return value === undefined || value === '' ? fallback : value;
 }
 
-/** Read a variable that must be present, failing loudly at startup if it isn't. */
 function requiredVar(name: string, fallback?: string): string {
   const value = optional(name, fallback ?? '');
   if (value === '') {
@@ -86,26 +60,14 @@ const target = rawTarget as TargetEnvironment;
 const selected = TARGETS[target];
 
 export const env = {
-  /** Which deployed version this run targets. */
   name: target,
 
-  /** Base URL for UI navigation. Consumed by playwright.config `use.baseURL`. */
   baseURL: optional('BASE_URL', selected.web),
 
-  /** Base URL for direct API calls: auth, test-data setup, cleanup. */
   apiURL: optional('API_URL', selected.api),
 
-  /** True inside any CI system. */
   isCI: Boolean(process.env['CI']),
 
-  /**
-   * Seeded accounts shipped with the application.
-   *
-   * These are safe for READ-ONLY tests and for flows that create data scoped
-   * to the user (carts, favourites, orders). Any test that mutates shared
-   * state — editing a product, deleting a brand — creates its own throwaway
-   * user through the API instead. We build that in Phase 4.
-   */
   users: {
     admin: {
       email: requiredVar('ADMIN_EMAIL', 'admin@practicesoftwaretesting.com'),

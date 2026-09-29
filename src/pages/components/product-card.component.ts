@@ -1,22 +1,5 @@
 import type { Locator } from '@playwright/test';
 
-/**
- * A single product card.
- *
- * THE KEY DIFFERENCE FROM HeaderComponent: this takes a Locator, not a Page.
- *
- * There are nine of these on screen. A component built from `page` would have
- * to say "the first one" or "the third one" internally, which is fragile and
- * unreadable. Building it from a Locator means the CALLER decides which card,
- * and every locator inside is automatically scoped to that card's subtree:
- *
- *   const card = new ProductCardComponent(productsPage.cards.nth(2));
- *   await card.getName();     // that card's name, not the page's first
- *
- * `root.getByTestId('product-name')` searches only INSIDE root. That scoping
- * is what makes this pattern work, and it's the standard answer to "how do you
- * handle repeated elements?"
- */
 export class ProductCardComponent {
   readonly name: Locator;
   readonly price: Locator;
@@ -38,19 +21,10 @@ export class ProductCardComponent {
     return (await this.name.textContent())?.trim() ?? '';
   }
 
-  /** The price as displayed, e.g. '$14.15'. */
   async getPriceText(): Promise<string> {
     return (await this.price.textContent())?.trim() ?? '';
   }
 
-  /**
-   * The price as a number.
-   *
-   * This matters more than it looks. Sorting assertions compare prices, and
-   * comparing them as STRINGS is wrong: '$9.99' sorts after '$10.00'
-   * lexically, because '9' > '1'. A sort test built on string comparison
-   * fails against a correctly sorted list — and you'll blame the app.
-   */
   async getPrice(): Promise<number> {
     const text = await this.getPriceText();
     const parsed = Number.parseFloat(text.replace(/[^0-9.]/g, ''));

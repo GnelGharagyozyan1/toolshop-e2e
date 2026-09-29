@@ -2,10 +2,6 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import playwright from 'eslint-plugin-playwright';
 
-/**
- * Lint rules chosen for one purpose: catch the mistakes that make a
- * Playwright suite slow, flaky, or silently green.
- */
 export default tseslint.config(
   { ignores: ['node_modules/', 'playwright-report/', 'test-results/', 'blob-report/'] },
 
@@ -20,8 +16,6 @@ export default tseslint.config(
       },
     },
     rules: {
-      // THE most important rule in a Playwright project.
-      // A forgotten `await` on an assertion means the test passes no matter what.
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/await-thenable': 'error',
       '@typescript-eslint/require-await': 'error',
@@ -43,35 +37,23 @@ export default tseslint.config(
     rules: {
       ...playwright.configs['flat/recommended'].rules,
 
-      // Blocks `test.only` from reaching main.
       'playwright/no-focused-test': 'error',
 
-      // Blocks `page.waitForTimeout(3000)`. Arbitrary sleeps are the #1 cause
-      // of suites that are both slow AND flaky. Use web-first assertions instead.
       'playwright/no-wait-for-timeout': 'error',
 
-      // Conditional logic in a test means the test doesn't know what it's asserting.
       'playwright/no-conditional-in-test': 'warn',
 
-      // Every test must assert something.
       'playwright/expect-expect': 'error',
 
-      // Skipped tests rot. Warn so they stay visible.
       'playwright/no-skipped-test': 'warn',
     },
   },
 
-  // The ESLint config file itself isn't part of the TypeScript project, so
-  // type-aware rules can't analyse it. Exempt it rather than contorting
-  // tsconfig to include a file that only ESLint ever reads.
   {
     files: ['eslint.config.mjs'],
     ...tseslint.configs.disableTypeChecked,
   },
 
-  // Playwright's fixture signature REQUIRES an empty destructure:
-  // `async ({}, use) => {}` is how you declare a fixture with no dependencies.
-  // The generic no-empty-pattern rule doesn't know that and flags it.
   {
     files: ['src/fixtures/**/*.ts'],
     rules: {

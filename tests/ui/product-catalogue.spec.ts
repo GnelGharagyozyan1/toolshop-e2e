@@ -13,21 +13,14 @@ test.describe('product catalogue', () => {
     const products = new ProductsPage(page);
     await products.open();
     await expect(products.cards).toHaveCount(9);
-
-    // Snapshot before acting, so we have something to wait against.
     const before = await products.getProductNames();
 
     await products.search('hammer');
 
-    // Wait for the CONTENT to change. The previous version read immediately
-    // and got the pre-search catalogue back — which is why it failed on
-    // chromium and webkit but passed on firefox. Timing-dependent, i.e. flaky.
     await expect.poll(() => products.getProductNames()).not.toEqual(before);
 
     const names = await products.getProductNames();
 
-    // every() returns true on an empty array, so the non-empty check is
-    // load-bearing, not decoration.
     expect(names.length).toBeGreaterThan(0);
     expect(names.every((n) => n.toLowerCase().includes('hammer'))).toBeTruthy();
   });
@@ -38,8 +31,6 @@ test.describe('product catalogue', () => {
 
     await products.search('zzzznotaproduct');
 
-    // toHaveCount POLLS, so it correctly waits for the old results to clear.
-    // Reading the array here would race the re-render.
     await expect(products.cards).toHaveCount(0);
   });
 
@@ -48,17 +39,12 @@ test.describe('product catalogue', () => {
     await products.open();
     await expect(products.cards).toHaveCount(9);
 
-    // Snapshot the order BEFORE acting, so we have something to wait against.
     const before = await products.getProductNames();
 
     await products.sortBy('price,asc');
 
-    // expect.poll re-runs this callback until the assertion holds. We wait for
-    // the CONTENT to change, because that's what the sort actually changes.
-    // toHaveCount would return immediately — 9 cards before, 9 after.
     await expect.poll(() => products.getProductNames()).not.toEqual(before);
 
-    // Only now is it safe to read and assert properly.
     const prices = await products.getPrices();
     expect(prices).toEqual([...prices].sort((a, b) => a - b));
   });
@@ -84,8 +70,6 @@ test.describe('product catalogue', () => {
 
     await products.filters.selectCategory('Hand Tools');
 
-    // Don't assert an exact count — the catalogue changes. Assert the
-    // RELATIONSHIP: filtering must not return more than everything.
     await expect(products.cards).not.toHaveCount(0);
     expect(await products.getCardCount()).toBeLessThanOrEqual(9);
   });
@@ -98,8 +82,6 @@ test.describe('product catalogue', () => {
 
     await products.goToNextPage();
 
-    // Same pattern. The previous version read immediately after the click and
-    // got page one back, then asserted page one differs from page one.
     await expect.poll(() => products.getProductNames()).not.toEqual(firstPage);
 
     const secondPage = await products.getProductNames();

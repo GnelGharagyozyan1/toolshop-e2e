@@ -1,13 +1,9 @@
 {
   "compilerOptions": {
-    /* Language and environment */
     "target": "ES2022",
     "lib": ["ES2022", "DOM"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-
-    /* Strictness — this is where most of the value is.
-       Every one of these flags turns a runtime bug into a compile-time error. */
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "noImplicitOverride": true,
@@ -16,18 +12,13 @@
     "noFallthroughCasesInSwitch": true,
     "exactOptionalPropertyTypes": true,
 
-    /* Interop */
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
 
-    /* We never emit JS — Playwright transpiles on the fly.
-       tsc is used only as a type checker (npm run typecheck). */
     "noEmit": true,
 
-    /* Path aliases: import from '@pages/login.page' instead of '../../../src/pages/login.page'.
-       Playwright reads these from tsconfig automatically. */
     "baseUrl": ".",
     "paths": {
       "@pages/*": ["src/pages/*"],
